@@ -11,8 +11,7 @@
 #include "PL0.h"
 #include "set.c"
 
-//////////////////////////////////////////////////////////////////////
-// print error message.
+//打印错误信息
 void error(int n)
 {
 	int i;
@@ -25,7 +24,7 @@ void error(int n)
 	err++;
 } // error
 
-//////////////////////////////////////////////////////////////////////
+/*获得一个字符*/
 void getch(void)
 {
 	if (cc == ll)
@@ -49,8 +48,7 @@ void getch(void)
 	ch = line[++cc];
 } // getch
 
-//////////////////////////////////////////////////////////////////////
-// gets a symbol from input stream.
+//从输入流中获取符号。
 void getsym(void)
 {
 	int i, k;
@@ -155,8 +153,7 @@ void getsym(void)
 	}
 } // getsym
 
-//////////////////////////////////////////////////////////////////////
-// generates (assembles) an instruction.
+/*生成PL/0机器指令*/
 void gen(int x, int y, int z)
 {
 	if (cx > CXMAX)
@@ -169,7 +166,6 @@ void gen(int x, int y, int z)
 	code[cx++].a = z;
 } // gen
 
-//////////////////////////////////////////////////////////////////////
 // tests if error occurs and skips all symbols that do not belongs to s1 or s2.
 void test(symset s1, symset s2, int n)
 {
@@ -186,9 +182,9 @@ void test(symset s1, symset s2, int n)
 } // test
 
 //////////////////////////////////////////////////////////////////////
-int dx;  // data allocation index
+int dx; // data allocation index数据分配索引
 
-// enter object(constant, variable or procedre) into table.
+// enter object(constant, variable or procedre)该函数用于向符号表添加新的符号，并确定标识符的有关属性
 void enter(int kind)
 {
 	mask* mk;
@@ -218,8 +214,11 @@ void enter(int kind)
 	} // switch
 } // enter
 
-//////////////////////////////////////////////////////////////////////
-// locates identifier in symbol table.
+
+
+
+
+// locates identifier in symbol table.查找标识符在符号表中的位置
 int position(char* id)
 {
 	int i;
@@ -229,7 +228,10 @@ int position(char* id)
 	return i;
 } // position
 
-//////////////////////////////////////////////////////////////////////
+
+
+
+// 常量定义处理
 void constdeclaration()
 {
 	if (sym == SYM_IDENTIFIER)
@@ -258,7 +260,11 @@ void constdeclaration()
 	 // There must be an identifier to follow 'const', 'var', or 'procedure'.
 } // constdeclaration
 
-//////////////////////////////////////////////////////////////////////
+
+
+
+
+// 变量定义处理
 void vardeclaration(void)
 {
 	if (sym == SYM_IDENTIFIER)
@@ -272,7 +278,10 @@ void vardeclaration(void)
 	}
 } // vardeclaration
 
-//////////////////////////////////////////////////////////////////////
+
+
+
+// 每一个分程序（过程）被编译结束后，将列出该部分 PL/0 程序代码。
 void listcode(int from, int to)
 {
 	int i;
@@ -285,7 +294,10 @@ void listcode(int from, int to)
 	printf("\n");
 } // listcode
 
-//////////////////////////////////////////////////////////////////////
+
+
+
+// 因子分析处理
 void factor(symset fsys)
 {
 	void expression(symset fsys);
@@ -356,7 +368,7 @@ void factor(symset fsys)
 	} // if
 } // factor
 
-//////////////////////////////////////////////////////////////////////
+// 项分析处理
 void term(symset fsys)
 {
 	int mulop;
@@ -381,7 +393,7 @@ void term(symset fsys)
 	destroyset(set);
 } // term
 
-//////////////////////////////////////////////////////////////////////
+// 表达式分析处理
 void expression(symset fsys)
 {
 	int addop;
@@ -408,7 +420,7 @@ void expression(symset fsys)
 	destroyset(set);
 } // expression
 
-//////////////////////////////////////////////////////////////////////
+// 条件分析处理
 void condition(symset fsys)
 {
 	int relop;
@@ -459,7 +471,11 @@ void condition(symset fsys)
 	} // else
 } // condition
 
-//////////////////////////////////////////////////////////////////////
+
+
+
+
+// 语句部分分析处理
 void statement(symset fsys)
 {
 	int i, cx1, cx2;
@@ -592,10 +608,61 @@ void statement(symset fsys)
 		gen(JMP, 0, cx1);
 		code[cx2].a = cx;
 	}
+//@@@
+
+  else if(sym==SYM_PRINT){
+    count=0;
+    getsym();
+    if(sym!=SYM_LPAREN){
+      error(33);//打印错误
+    }
+    while(1){
+      getsym();
+      if(sym==SYM_RPAREN) break;
+      else if(sym==SYM_IDENTIFIER){
+        count++;
+        if((i=position(id))==0) error(11);
+        else if(table[i].kind!=ID_VARIABLE && table[i].kind!=ID_CONSTANT){
+          error(33);
+        }
+        else{
+          if (table[i].kind == ID_VARIABLE){
+            mask* mk;
+            mk=(mask*)&table[i];
+            gen(LOD,level-mk->level,mk->address);
+            getsym();
+          }
+          else if (table[i].kind == ID_CONSTANT){
+            gen(LIT,0,table[i].value);
+            getsym();
+          }
+          if(sym==SYM_RPAREN) break;
+          else if(sym==SYM_COMMA);
+          else error(28);
+        }
+      }
+      else if(sym==SYM_NUMBER){
+        gen(LIT,0,num);
+        count++;
+        getsym();
+        if (sym == SYM_RPAREN) break;
+      }
+      else{
+        error(33);
+      }
+    }
+    gen(PRT,0,count);
+    getsym(); 
+  }
+
+//@@@@
 	test(fsys, phi, 19);
 } // statement
-			
-//////////////////////////////////////////////////////////////////////
+
+
+
+
+// 分程序分析处理
 void block(symset fsys)
 {
 	int cx0; // initial code index
@@ -606,7 +673,7 @@ void block(symset fsys)
 
 	dx = 3;
 	block_dx = dx;
-	mk = (mask*) &table[tx];
+	mk = (mask*) &table[tx];//结构体强制类型转换
 	mk->address = cx;
 	gen(JMP, 0, 0);
 	if (level > MAXLEVEL)
@@ -731,7 +798,10 @@ void block(symset fsys)
 	listcode(cx0, cx);
 } // block
 
-//////////////////////////////////////////////////////////////////////
+
+
+
+// 根据层次差并从当前数据区沿着静态链查找，以便获取变量实际所在的数据区其地址
 int base(int stack[], int currentLevel, int levelDiff)
 {
 	int b = currentLevel;
@@ -741,8 +811,10 @@ int base(int stack[], int currentLevel, int levelDiff)
 	return b;
 } // base
 
-//////////////////////////////////////////////////////////////////////
-// interprets and executes codes.
+
+
+
+// interprets and executes codes.完成各种指令的执行工作
 void interpret()
 {
 	int pc;        // program counter
@@ -853,7 +925,15 @@ void interpret()
 			if (stack[top] == 0)
 				pc = i.a;
 			top--;
-			break;
+    case PRT:
+      if(i.a==0) printf("\n");
+      else{
+        for(int x=i.a-1;x>=0;x--){
+          printf("%d",stack[top-x]);
+        }
+      top-=i.a;
+      }
+		break;
 		} // switch
 	}
 	while (pc);
@@ -861,7 +941,9 @@ void interpret()
 	printf("End executing PL/0 program.\n");
 } // interpret
 
-//////////////////////////////////////////////////////////////////////
+
+
+//main()
 void main ()
 {
 	FILE* hbin;
@@ -870,9 +952,9 @@ void main ()
 	symset set, set1, set2;
 
 	printf("Please input source file name: "); // get file name to be compiled
-	scanf("%s", s);
-	if ((infile = fopen(s, "r")) == NULL)
-	{
+	//scanf("%s", s);
+  if ((infile = fopen("example.txt", "r")) == NULL)
+  {
 		printf("File %s can't be opened.\n", s);
 		exit(1);
 	}
@@ -917,7 +999,7 @@ void main ()
 		interpret();
 	else
 		printf("There are %d error(s) in PL/0 program.\n", err);
-	listcode(0, cx);
+	//listcode(0, cx);
 } // main
 
 //////////////////////////////////////////////////////////////////////

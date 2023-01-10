@@ -5,6 +5,7 @@
 #include <stdarg.h>
 #include "set.h"
 
+//合并两个符号
 symset uniteset(symset s1, symset s2)
 {
 	symset s;
@@ -52,6 +53,7 @@ symset uniteset(symset s1, symset s2)
 	return s;
 } // uniteset
 
+// 插入一个符号集合
 void setinsert(symset s, int elem)
 {
 	snode* p = s;
@@ -68,6 +70,7 @@ void setinsert(symset s, int elem)
 	p->next = q;
 } // setinsert
 
+//新建一个符号集合
 symset createset(int elem, .../* SYM_NULL */)
 {
 	va_list list;
@@ -86,6 +89,7 @@ symset createset(int elem, .../* SYM_NULL */)
 	return s;
 } // createset
 
+//销毁一个符号集合
 void destroyset(symset s)
 {
 	snode* p;
@@ -99,6 +103,7 @@ void destroyset(symset s)
 	}
 } // destroyset
 
+//elem是否在符号集s中
 int inset(int elem, symset s)
 {
 	s = s->next;
